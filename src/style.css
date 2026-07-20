@@ -91,5 +91,52 @@ iframe{display:block;border:0;width:100%;height:100%;background:#fff}
 .note a{color:var(--accent);text-decoration:none;font-weight:600}
 .note a:hover{text-decoration:underline}
 
-@media (max-width:720px){ .ctl.dev-only,.hide-sm{display:none} .stage{gap:32px} }
+/* per-device load status */
+.taglane{display:flex;align-items:center;gap:8px}
+.statuschip{font-size:11px;font-weight:600;padding:4px 10px;border-radius:20px;border:1px solid var(--line2);color:var(--muted);letter-spacing:.02em}
+.statuschip.loading{color:#e6b53c;border-color:rgba(230,181,60,.4)}
+.statuschip.loaded{color:var(--accent);border-color:rgba(55,208,192,.4)}
+.statuschip.timeout{color:#ff6b6b;border-color:rgba(255,107,107,.45)}
+:root[data-stage="light"] .statuschip{background:#fff}
+
+/* issues button badge */
+#issuesBtn{gap:7px}
+#issuesBtn .badge{min-width:20px;height:20px;padding:0 6px;border-radius:20px;background:var(--line2);color:var(--muted);
+  font-size:11px;font-weight:700;display:inline-flex;align-items:center;justify-content:center}
+#issuesBtn .badge.has{background:#ff6b6b;color:#160707}
+
+/* issues panel */
+.ipanel{position:fixed;left:0;right:0;bottom:0;z-index:30;height:min(46vh,440px);
+  background:var(--bg2);border-top:1px solid var(--line2);display:flex;flex-direction:column;
+  box-shadow:0 -18px 40px -20px rgba(0,0,0,.7)}
+.ipanel[hidden]{display:none}
+.ipanel-head{display:flex;align-items:center;gap:14px;padding:12px 16px;border-bottom:1px solid var(--line)}
+.ipanel-title{font-weight:700;font-size:15px;display:flex;align-items:center;gap:8px}
+.ipanel-title .count{font-size:12px;font-weight:700;color:var(--muted);background:var(--panel);border:1px solid var(--line2);border-radius:20px;padding:2px 9px}
+.agentwrap{display:flex;gap:8px}
+.agent{font-size:11px;font-weight:600;color:var(--muted2);border:1px solid var(--line2);border-radius:20px;padding:4px 10px}
+.agent.on{color:var(--accent);border-color:rgba(55,208,192,.45)}
+.ipanel-actions{margin-left:auto;display:flex;gap:8px}
+.mini{background:var(--panel);border:1px solid var(--line2);color:var(--txt);border-radius:9px;padding:7px 13px;font-size:13px;font-weight:600;cursor:pointer}
+.mini:hover{border-color:var(--accent)}
+.ipanel-body{flex:1;overflow:auto;padding:14px 16px;display:flex;flex-direction:column;gap:12px}
+.snippetbar{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:12px 14px}
+.snippetinfo{font-size:13px;color:var(--muted);margin-bottom:9px}
+.snippetrow{display:flex;gap:10px;align-items:stretch}
+#snippetBox{flex:1;background:var(--bg);border:1px solid var(--line2);border-radius:9px;color:#b7c2d0;
+  font-family:ui-monospace,Menlo,Consolas,monospace;font-size:11.5px;line-height:1.5;padding:10px;resize:vertical}
+.ilist{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:6px}
+.irow{display:grid;grid-template-columns:auto auto 1fr;gap:10px;align-items:baseline;
+  background:var(--panel);border:1px solid var(--line);border-left-width:3px;border-radius:9px;padding:9px 12px;font-size:13px}
+.irow.error{border-left-color:#ff6b6b}
+.irow.warn{border-left-color:#e6b53c}
+.idev{font-size:10.5px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--muted2);
+  border:1px solid var(--line2);border-radius:6px;padding:2px 7px}
+.itype{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--muted)}
+.irow.error .itype{color:#ff8f8f}.irow.warn .itype{color:#e6c069}
+.imsg{color:var(--txt);word-break:break-word;font-family:ui-monospace,Menlo,Consolas,monospace;font-size:12px}
+.iempty{color:var(--muted2);font-size:13px;text-align:center;padding:14px}
+.iempty[hidden]{display:none}
+
+@media (max-width:720px){ .ctl.dev-only,.hide-sm,.agentwrap{display:none} .stage{gap:32px} }
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}

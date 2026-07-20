@@ -97,6 +97,8 @@ function loadUrl(raw: string): void {
   phoneFrame.src = url;
   laptopFrame.src = url;
   writeStore("dp_url", url);
+  watchFrame("phone");
+  watchFrame("laptop");
 }
 
 function layoutPhone(): Size {
@@ -160,6 +162,132 @@ function fit(): void {
   applyScale("laptopScaler", lScale, lDim);
 }
 
+// ---- diagnostics ----
+type LoadState = "loading" | "loaded" | "timeout";
+type Frame = "phone" | "laptop";
+interface Issue {
+  device: Frame;
+  level: "error" | "warn";
+  type: string;
+  message: string;
+  at?: string;
+}
+
+// Paste-into-your-site agent. Reports errors, broken assets, and overflow to DevicePeek.
+const AGENT_SNIPPET = `<script>
+(function(){var T="devicepeek-agent";function s(o){try{parent.postMessage(Object.assign({source:T,url:location.href},o),"*")}catch(e){}}
+s({type:"ready"});
+addEventListener("error",function(e){var t=e.target||{};if(t.tagName==="IMG"||t.tagName==="SCRIPT"||t.tagName==="LINK"){s({type:"resource",level:"error",message:(t.tagName==="IMG"?"Broken image: ":"Failed to load: ")+(t.src||t.href||"")});}else{s({type:"js",level:"error",message:e.message,at:(e.filename||"")+":"+(e.lineno||"")});}},true);
+addEventListener("unhandledrejection",function(e){var r=e.reason;s({type:"promise",level:"error",message:"Unhandled rejection: "+(r&&r.message?r.message:String(r))});});
+["error","warn"].forEach(function(k){var o=console[k];console[k]=function(){s({type:"console",level:k==="warn"?"warn":"error",message:[].map.call(arguments,String).join(" ")});o.apply(console,arguments);};});
+function of(){var e=document.documentElement;if(e.scrollWidth>e.clientWidth+2){s({type:"layout",level:"warn",message:"Horizontal overflow: content "+e.scrollWidth+"px in a "+e.clientWidth+"px viewport"});}}
+addEventListener("load",of);addEventListener("resize",function(){clearTimeout(window.__dpof);window.__dpof=setTimeout(of,300);});
+})();
+<\/script>`;
+
+const loadTimers: Record<Frame, number> = { phone: 0, laptop: 0 };
+const issues: Issue[] = [];
+
+function setStatus(device: Frame, state: LoadState): void {
+  const chip = el<HTMLElement>(device === "phone" ? "phoneStatus" : "laptopStatus");
+  chip.className = "statuschip " + state;
+  chip.textContent = state === "loading" ? "Loading" : state === "loaded" ? "Loaded" : "No response";
+}
+
+function setAgent(device: Frame, on: boolean): void {
+  const chip = el<HTMLElement>(device === "phone" ? "agentPhone" : "agentLaptop");
+  chip.textContent = `${device === "phone" ? "Phone" : "Laptop"} agent: ${on ? "on" : "off"}`;
+  chip.classList.toggle("on", on);
+}
+
+function watchFrame(device: Frame): void {
+  const frame = device === "phone" ? phoneFrame : laptopFrame;
+  setStatus(device, "loading");
+  setAgent(device, false);
+  window.clearTimeout(loadTimers[device]);
+  loadTimers[device] = window.setTimeout(() => setStatus(device, "timeout"), 8000);
+  frame.onload = () => {
+    window.clearTimeout(loadTimers[device]);
+    setStatus(device, "loaded");
+  };
+}
+
+function renderIssues(): void {
+  const badge = el<HTMLElement>("issuesBadge");
+  badge.textContent = String(issues.length);
+  badge.classList.toggle("has", issues.length > 0);
+  el<HTMLElement>("issuesCount").textContent = String(issues.length);
+
+  const list = el<HTMLElement>("issuesList");
+  el<HTMLElement>("issuesEmpty").hidden = issues.length > 0;
+  list.textContent = "";
+  for (const it of issues.slice().reverse()) {
+    const row = document.createElement("li");
+    row.className = "irow " + it.level;
+    const dev = document.createElement("span");
+    dev.className = "idev";
+    dev.textContent = it.device === "phone" ? "Phone" : "Laptop";
+    const type = document.createElement("span");
+    type.className = "itype";
+    type.textContent = it.type;
+    const msg = document.createElement("span");
+    msg.className = "imsg";
+    msg.textContent = it.at ? `${it.message}  (${it.at})` : it.message;
+    row.append(dev, type, msg);
+    list.appendChild(row);
+  }
+}
+
+function addIssue(it: Issue): void {
+  issues.push(it);
+  if (issues.length > 200) issues.shift();
+  renderIssues();
+}
+
+// Messages from the opt-in agent. Only trusted by our tag, and rendered as text.
+window.addEventListener("message", (e: MessageEvent) => {
+  const data = e.data as Record<string, unknown> | null;
+  if (!data || data.source !== "devicepeek-agent") return;
+  const device: Frame | null =
+    e.source === phoneFrame.contentWindow ? "phone" : e.source === laptopFrame.contentWindow ? "laptop" : null;
+  if (!device) return;
+  if (data.type === "ready") {
+    setAgent(device, true);
+    return;
+  }
+  addIssue({
+    device,
+    level: data.level === "warn" ? "warn" : "error",
+    type: String(data.type ?? "issue"),
+    message: String(data.message ?? "").slice(0, 500),
+    at: data.at ? String(data.at).slice(0, 200) : undefined,
+  });
+});
+
+el<HTMLButtonElement>("issuesBtn").addEventListener("click", () => {
+  const panel = el<HTMLElement>("issuesPanel");
+  panel.hidden = !panel.hidden;
+});
+el<HTMLButtonElement>("closePanel").addEventListener("click", () => {
+  el<HTMLElement>("issuesPanel").hidden = true;
+});
+el<HTMLButtonElement>("clearIssues").addEventListener("click", () => {
+  issues.length = 0;
+  renderIssues();
+});
+el<HTMLButtonElement>("copySnippet").addEventListener("click", async () => {
+  const box = el<HTMLTextAreaElement>("snippetBox");
+  try {
+    await navigator.clipboard.writeText(box.value);
+  } catch {
+    box.select();
+    document.execCommand("copy");
+  }
+  const btn = el<HTMLButtonElement>("copySnippet");
+  btn.textContent = "Copied";
+  window.setTimeout(() => (btn.textContent = "Copy"), 1200);
+});
+
 // ---- events ----
 el<HTMLFormElement>("urlform").addEventListener("submit", (e) => {
   e.preventDefault();
@@ -186,10 +314,6 @@ el<HTMLButtonElement>("reload").addEventListener("click", () => {
   laptopFrame.src = u;
 });
 el<HTMLButtonElement>("openTab").addEventListener("click", () => window.open(currentUrl(), "_blank", "noopener"));
-el<HTMLAnchorElement>("noteOpen").addEventListener("click", (e) => {
-  e.preventDefault();
-  window.open(currentUrl(), "_blank", "noopener");
-});
 el<HTMLButtonElement>("stageToggle").addEventListener("click", () => {
   const root = document.documentElement;
   root.dataset.stage = root.dataset.stage === "light" ? "dark" : "light";
@@ -199,6 +323,8 @@ window.addEventListener("resize", fit);
 
 // ---- init ----
 document.documentElement.dataset.stage = readStore("dp_stage") ?? "dark";
+el<HTMLTextAreaElement>("snippetBox").value = AGENT_SNIPPET;
+renderIssues();
 // A ?url= query param wins, so preview links are shareable (e.g. ?url=example.com).
 const paramUrl = new URLSearchParams(location.search).get("url");
 loadUrl(paramUrl ?? readStore("dp_url") ?? DEFAULT_URL);

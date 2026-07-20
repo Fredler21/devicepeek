@@ -47,6 +47,7 @@
     <button class="icon" id="reload" title="Reload">↻</button>
     <button class="icon" id="stageToggle" title="Toggle backdrop">◐</button>
     <button class="icon" id="openTab" title="Open URL in a new tab">Open ↗</button>
+    <button class="icon" id="issuesBtn" title="Show issues">⚠ Issues<span class="badge" id="issuesBadge">0</span></button>
   </header>
 
   <main class="stage" id="stage">
@@ -60,7 +61,10 @@
           </div>
         </div>
       </div>
-      <div class="tag" id="phoneTag">iPhone</div>
+      <div class="taglane">
+        <span class="tag" id="phoneTag">iPhone</span>
+        <span class="statuschip loading" id="phoneStatus">Loading</span>
+      </div>
     </section>
 
     <section class="device" id="laptopDevice">
@@ -74,14 +78,37 @@
           <div class="base" id="lbase"></div>
         </div>
       </div>
-      <div class="tag" id="laptopTag">Laptop</div>
+      <div class="taglane">
+        <span class="tag" id="laptopTag">Laptop</span>
+        <span class="statuschip loading" id="laptopStatus">Loading</span>
+      </div>
     </section>
   </main>
 
-  <div class="note" id="note">
-    <span>Blank frame? That site <b>blocks embedding</b>.</span>
-    <a href="#" id="noteOpen">Open it in a new tab ↗</a>
-  </div>
+  <section class="ipanel" id="issuesPanel" hidden>
+    <div class="ipanel-head">
+      <div class="ipanel-title">Issues <span class="count" id="issuesCount">0</span></div>
+      <div class="agentwrap">
+        <span class="agent" id="agentPhone">Phone agent: off</span>
+        <span class="agent" id="agentLaptop">Laptop agent: off</span>
+      </div>
+      <div class="ipanel-actions">
+        <button class="mini" id="clearIssues">Clear</button>
+        <button class="mini" id="closePanel">Close</button>
+      </div>
+    </div>
+    <div class="ipanel-body">
+      <div class="snippetbar">
+        <div class="snippetinfo">Deep checks (JavaScript errors, broken images, layout overflow) need your site to opt in. Paste this into your dev build once:</div>
+        <div class="snippetrow">
+          <textarea id="snippetBox" readonly rows="3" spellcheck="false"></textarea>
+          <button class="mini" id="copySnippet">Copy</button>
+        </div>
+      </div>
+      <ul class="ilist" id="issuesList"></ul>
+      <div class="iempty" id="issuesEmpty">No issues detected yet. Load-level problems appear here automatically; add the snippet above for deep checks.</div>
+    </div>
+  </section>
 
   <script type="module" src="/src/main.ts"></script>
 </body>

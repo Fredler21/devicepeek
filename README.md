@@ -22,6 +22,7 @@ Live app: https://fredler21.github.io/devicepeek/
 - Shareable preview links. Add `?url=example.com` to the address and DevicePeek opens with that site already loaded
 - Device presets: iPhone 15 Pro, Pro Max, and SE, Pixel 8, Galaxy S23, plus MacBook Air, 1366, 1440, and 1024 laptops
 - Rotate, reload, open in a new tab, and a light or dark backdrop toggle
+- Issue detection. Load failures show up automatically, and an opt in agent snippet reports JavaScript errors, broken images, and layout overflow live, labeled per device
 - True responsive rendering. Each frame is a real iframe at that device's CSS width, so media queries fire exactly as they do on the device
 - Built with TypeScript and Vite, so it stays typed and tiny
 
@@ -34,6 +35,22 @@ Live app: https://fredler21.github.io/devicepeek/
 - Reload: refresh both frames at once
 - Backdrop: toggle a light or dark stage behind the devices
 - Open in a new tab: open the current URL directly, which is handy when a site blocks embedding
+- Issues: open the panel that shows each frame's load status and any problems detected
+
+## Finding issues
+
+DevicePeek can surface problems with the site you are previewing. It works in two layers.
+
+Always on, for any URL, with no setup: each device shows a status of Loading, Loaded,
+or No response, so a blank frame, a site that is down, or one that blocks embedding is
+obvious right away.
+
+Deep checks, opt in: browsers do not let one page read inside another site's frame, so
+to catch JavaScript errors, unhandled promise rejections, broken images, and horizontal
+overflow, your site sends them to DevicePeek. Open the Issues panel, copy the small
+agent snippet, and paste it into your site's dev build once. It reports problems over
+postMessage, and DevicePeek lists them live, labeled by device. Keep it out of
+production if you prefer, since it is only needed while you are testing.
 
 ## Tech stack
 
