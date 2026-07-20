@@ -19,6 +19,7 @@ Live app: https://fredler21.github.io/devicepeek/
 
 - iPhone and laptop, together, so you can spot responsive breakpoints at a glance
 - Any URL, including your deploys, preview links, or `localhost` for live local dev
+- Shareable preview links. Add `?url=example.com` to the address and DevicePeek opens with that site already loaded
 - Device presets: iPhone 15 Pro, Pro Max, and SE, Pixel 8, Galaxy S23, plus MacBook Air, 1366, 1440, and 1024 laptops
 - Rotate, reload, open in a new tab, and a light or dark backdrop toggle
 - True responsive rendering. Each frame is a real iframe at that device's CSS width, so media queries fire exactly as they do on the device

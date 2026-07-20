@@ -113,7 +113,7 @@ function layoutPhone(): Size {
   screenEl.style.height = `${h}px`;
   screenEl.style.borderRadius = `${d.screenRadius}px`;
   el<HTMLElement>("island").className = "island" + (!d.island || landscape ? " hidden" : "");
-  el<HTMLElement>("phoneTag").textContent = `${d.name} · ${w}×${h}`;
+  el<HTMLElement>("phoneTag").textContent = `${d.name} (${w} × ${h})`;
 
   const bezel = d.bezel ?? 0;
   return { w: w + bezel * 2, h: h + bezel * 2 };
@@ -124,7 +124,7 @@ function layoutLaptop(): Size {
   el<HTMLElement>("lscreen").style.width = `${d.w}px`;
   el<HTMLElement>("lscreen").style.height = `${d.h}px`;
   el<HTMLElement>("lbase").style.width = `${d.w + 64}px`;
-  el<HTMLElement>("laptopTag").textContent = `${d.name} · ${d.w}×${d.h}`;
+  el<HTMLElement>("laptopTag").textContent = `${d.name} (${d.w} × ${d.h})`;
   return { w: d.w + 22, h: d.h + 22 + 15 };
 }
 
@@ -199,5 +199,7 @@ window.addEventListener("resize", fit);
 
 // ---- init ----
 document.documentElement.dataset.stage = readStore("dp_stage") ?? "dark";
-loadUrl(readStore("dp_url") ?? DEFAULT_URL);
+// A ?url= query param wins, so preview links are shareable (e.g. ?url=example.com).
+const paramUrl = new URLSearchParams(location.search).get("url");
+loadUrl(paramUrl ?? readStore("dp_url") ?? DEFAULT_URL);
 fit();
