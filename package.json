@@ -1,0 +1,16 @@
+{
+  "name": "devicepeek",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "description": "See any website or app as an iPhone and a laptop, side by side.",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc && vite build",
+    "preview": "vite preview"
+  },
+  "devDependencies": {
+    "typescript": "^7.0.2",
+    "vite": "^8.1.5"
+  }
+}

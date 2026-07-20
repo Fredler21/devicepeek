@@ -1,13 +1,28 @@
-# DevicePeek
+<p align="center">
+  <img src="docs/banner.png" alt="DevicePeek — see any website or app as an iPhone and a laptop, side by side" width="100%">
+</p>
 
-**See any website or app as an iPhone and a laptop, side by side — right in your browser.**
+<h1 align="center">DevicePeek</h1>
 
-DevicePeek is a single-file, zero-dependency tool for previewing a URL at real
-device widths. Paste your site, a Vercel/Netlify preview link, or `localhost:3000`,
-and watch the responsive layout render in an iPhone frame and a laptop frame at the
-same time. Perfect while you're building an app or website.
+<p align="center">
+  <b>See any website or app as an iPhone and a laptop, side by side — right in your browser.</b>
+</p>
 
-<!-- Add a screenshot here after your first push: ![DevicePeek](screenshot.png) -->
+<p align="center">
+  <img alt="TypeScript" src="https://img.shields.io/badge/TypeScript-3178c6?logo=typescript&logoColor=white">
+  <img alt="Vite" src="https://img.shields.io/badge/Vite-646cff?logo=vite&logoColor=white">
+  <img alt="License: MIT" src="https://img.shields.io/badge/License-MIT-37d0c0">
+  <img alt="GitHub Pages" src="https://img.shields.io/badge/Live-GitHub%20Pages-2ea44f">
+</p>
+
+---
+
+DevicePeek renders a URL at real device widths inside an iPhone frame and a laptop
+frame at the same time. Paste your site, a Vercel/Netlify preview link, or
+`localhost:3000`, and instantly see how the responsive layout behaves on each — a fast
+feedback loop while you're building an app or website.
+
+**▶ Live app:** https://fredler21.github.io/devicepeek/
 
 ## Features
 
@@ -16,24 +31,59 @@ same time. Perfect while you're building an app or website.
 - 🔄 **Device presets** — iPhone 15 Pro / Pro Max / SE, Pixel 8, Galaxy S23; MacBook Air, 1366, 1440, 1024
 - ↻ **Rotate, reload, open-in-tab**, and a **light/dark backdrop** toggle
 - 🎯 **True responsive rendering** — each frame is a real `<iframe>` at that device's CSS width, so `@media` queries fire exactly as on-device
-- 🪶 **No build, no install** — one `index.html`; remembers your last URL
+- ⚡ **Built with TypeScript + Vite** — typed, tree-shaken, and tiny
 
-## Use it
+## Tech stack
 
-**Hosted:** open the GitHub Pages link (see the repo's *About* / *Pages* section).
+| | |
+|---|---|
+| Language | **TypeScript** (strict) |
+| Build tool | **Vite** |
+| Runtime deps | none — it's just DOM + CSS |
+| Hosting | **GitHub Pages** via GitHub Actions |
 
-**Locally:** just open `index.html` in your browser — that's it. Or serve it:
+## Getting started
 
 ```bash
-npx serve .        # or: python -m http.server
+git clone https://github.com/Fredler21/devicepeek.git
+cd devicepeek
+npm install
+npm run dev       # http://localhost:5173/devicepeek/
 ```
 
-**Preview your own project while building:**
+Build & preview the production bundle:
 
 ```bash
-npm run dev        # start your dev server (e.g. Next.js on :3000)
+npm run build     # type-checks with tsc, then bundles with Vite -> dist/
+npm run preview   # serve the built dist/ locally
 ```
+
+## Preview your own project while building
+
+```bash
+npm run dev       # start your app's dev server, e.g. Next.js on :3000
+```
+
 Then in DevicePeek, type `localhost:3000` and hit **Preview**.
+
+## Project structure
+
+```
+devicepeek/
+├─ index.html              # Vite entry (markup only)
+├─ src/
+│  ├─ main.ts              # typed app logic (devices, layout, scaling)
+│  ├─ style.css            # styles
+│  └─ vite-env.d.ts        # Vite client types
+├─ public/favicon.svg      # copied to the build as-is
+├─ vite.config.ts          # base path for GitHub Pages
+└─ .github/workflows/deploy.yml   # build + deploy to Pages on every push to main
+```
+
+## Deployment
+
+Every push to `main` triggers the **Deploy to GitHub Pages** workflow, which runs
+`npm ci && npm run build` and publishes `dist/` to Pages — no manual steps.
 
 ## How it works
 
@@ -45,10 +95,10 @@ Then in DevicePeek, type `localhost:3000` and hit **Preview**.
 ## Good to know
 
 Browsers won't let a page be embedded if it sends an `X-Frame-Options` or
-`Content-Security-Policy: frame-ancestors` header. So DevicePeek works with sites
-that **allow embedding** — your own apps, most preview deployments, and `localhost` —
-but **not** locked-down sites like Google, YouTube, or many banks. When a frame comes
-up blank, use the **Open in a new tab ↗** shortcut.
+`Content-Security-Policy: frame-ancestors` header. DevicePeek works with sites that
+**allow embedding** — your own apps, most preview deployments, and `localhost` — but
+**not** locked-down sites like Google, YouTube, or many banks. When a frame comes up
+blank, use the **Open in a new tab ↗** shortcut.
 
 It renders with your desktop browser engine, so it's accurate for **layout and
 responsive breakpoints**, but won't reproduce iOS-Safari-only quirks — a real device
