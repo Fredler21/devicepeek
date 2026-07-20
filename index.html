@@ -1,0 +1,301 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Device Preview — see any site as iPhone or laptop</title>
+<meta name="description" content="Preview any website or app in an iPhone and laptop frame, side by side, right in your browser.">
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<style>
+  :root{
+    --bg:#0b0e14; --bg2:#12161f; --panel:#161b26; --panel2:#1d2330;
+    --line:#252c3a; --line2:#313a4d;
+    --txt:#e6ebf3; --muted:#8b97a8; --muted2:#5f6b7d;
+    --accent:#37d0c0; --accent-d:#1f9c8f; --accent-t:rgba(55,208,192,.16);
+    --frame:#1b1e26; --deck:#c9ced6;
+  }
+  :root[data-stage="light"]{ --stagebg:#eef1f5; --stagegrid:rgba(0,0,0,.04); }
+  :root[data-stage="dark"]{ --stagebg:#0b0e14; --stagegrid:rgba(255,255,255,.03); }
+  *{box-sizing:border-box;margin:0}
+  html,body{height:100%}
+  body{
+    font-family:'Inter',ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,sans-serif;
+    color:var(--txt);background:var(--bg);display:flex;flex-direction:column;overflow:hidden;
+    -webkit-font-smoothing:antialiased;
+  }
+  button,input,select{font-family:inherit}
+
+  /* ---- top bar ---- */
+  .bar{display:flex;align-items:center;gap:12px;flex-wrap:wrap;padding:11px 16px;
+    background:linear-gradient(180deg,var(--bg2),var(--bg));border-bottom:1px solid var(--line);z-index:20}
+  .logo{display:flex;align-items:center;gap:10px;font-weight:700;font-size:15px;letter-spacing:-.01em;white-space:nowrap}
+  .logo svg{width:26px;height:26px}
+  .logo span{color:var(--accent)}
+  .sep{width:1px;height:26px;background:var(--line);flex:none}
+
+  .urlform{display:flex;flex:1;min-width:240px;max-width:640px;background:var(--panel);
+    border:1px solid var(--line2);border-radius:11px;overflow:hidden}
+  .urlform:focus-within{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-t)}
+  .urlform .pre{display:flex;align-items:center;padding:0 10px;color:var(--muted2)}
+  .urlform input{flex:1;background:transparent;border:0;color:var(--txt);font-size:14px;padding:10px 6px 10px 0;outline:none}
+  .urlform button{background:var(--accent);color:#05201d;border:0;font-weight:700;font-size:14px;padding:0 18px;cursor:pointer}
+  .urlform button:hover{background:#4ce0d0}
+
+  .toggle{display:flex;background:var(--panel);border:1px solid var(--line2);border-radius:11px;overflow:hidden}
+  .toggle button{background:transparent;border:0;color:var(--muted);font-size:13.5px;font-weight:600;
+    padding:9px 14px;cursor:pointer;display:flex;align-items:center;gap:7px;transition:.15s}
+  .toggle button:hover{color:var(--txt)}
+  .toggle button.on{background:var(--accent);color:#05201d}
+
+  .ctl{display:flex;align-items:center;gap:8px}
+  .ctl label{font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted2)}
+  select.dev,button.icon{background:var(--panel);border:1px solid var(--line2);border-radius:10px;
+    color:var(--txt);font-size:13.5px;padding:9px 11px;cursor:pointer;transition:.15s}
+  select.dev{padding-right:24px}
+  button.icon:hover,select.dev:hover{border-color:var(--accent)}
+  button.icon{min-width:40px;display:inline-flex;align-items:center;justify-content:center;gap:6px}
+  .spacer{flex:1}
+
+  /* ---- stage ---- */
+  .stage{flex:1;position:relative;overflow:auto;background:var(--stagebg);
+    background-image:radial-gradient(var(--stagegrid) 1px,transparent 1px);background-size:22px 22px;
+    display:flex;align-items:center;justify-content:center;gap:56px;padding:40px;transition:background .2s}
+
+  .device{display:flex;flex-direction:column;align-items:center;gap:14px;flex:none}
+  .device .tag{font-size:12px;color:var(--muted);font-variant-numeric:tabular-nums;
+    background:var(--panel);border:1px solid var(--line);padding:5px 12px;border-radius:20px;letter-spacing:.02em}
+  :root[data-stage="light"] .device .tag{background:#fff;color:#5f6b7d;border-color:#d9dee6}
+  .scaler{transform-origin:top center}
+
+  /* phone */
+  .phone{position:relative;background:linear-gradient(150deg,#2b2f3a,#141721 55%,#242836);
+    padding:13px;border-radius:52px;box-shadow:0 2px 0 rgba(255,255,255,.05) inset,0 30px 60px -18px rgba(0,0,0,.55)}
+  .phone .pscreen{position:relative;background:#fff;border-radius:40px;overflow:hidden}
+  .phone .island{position:absolute;top:10px;left:50%;transform:translateX(-50%);width:112px;height:26px;
+    background:#000;border-radius:16px;z-index:3}
+  .phone .island.hidden{display:none}
+  .phone .pbtn{position:absolute;left:-3px;width:3px;background:#2b2f3a;border-radius:3px}
+  .phone .pbtn.v1{top:104px;height:30px}.phone .pbtn.v2{top:146px;height:52px}
+  .phone .pbtn.pw{left:auto;right:-3px;top:132px;height:66px}
+
+  /* laptop */
+  .laptop{display:flex;flex-direction:column;align-items:center}
+  .laptop .lid{position:relative;background:linear-gradient(160deg,#2b2f3a,#181b23);padding:11px;
+    border-radius:16px 16px 5px 5px;box-shadow:0 24px 50px -20px rgba(0,0,0,.55)}
+  .laptop .lid::before{content:"";position:absolute;top:5px;left:50%;transform:translateX(-50%);
+    width:6px;height:6px;border-radius:50%;background:#0a0c10;box-shadow:0 0 0 1px #333 inset}
+  .laptop .lscreen{background:#fff;border-radius:4px;overflow:hidden}
+  .laptop .base{position:relative;height:15px;background:linear-gradient(180deg,#d3d8df,#a7adb7);
+    border-radius:0 0 14px 14px;box-shadow:0 10px 16px -8px rgba(0,0,0,.5)}
+  .laptop .base::after{content:"";position:absolute;top:0;left:50%;transform:translateX(-50%);
+    width:16%;height:7px;background:#8f96a1;border-radius:0 0 8px 8px}
+
+  iframe{display:block;border:0;width:100%;height:100%;background:#fff}
+
+  /* blocked / empty helper */
+  .note{position:fixed;left:50%;bottom:16px;transform:translateX(-50%);z-index:15;
+    display:flex;align-items:center;gap:12px;background:var(--panel);border:1px solid var(--line2);
+    border-radius:12px;padding:9px 14px;font-size:13px;color:var(--muted);box-shadow:0 12px 30px -12px rgba(0,0,0,.6)}
+  .note b{color:var(--txt)}
+  .note a{color:var(--accent);text-decoration:none;font-weight:600}
+  .note a:hover{text-decoration:underline}
+
+  @media (max-width:720px){ .ctl.dev-only,.hide-sm{display:none} .stage{gap:32px} }
+  @media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+  <header class="bar">
+    <div class="logo">
+      <svg viewBox="0 0 32 32" fill="none" aria-hidden="true">
+        <rect x="2" y="5" width="21" height="15" rx="2.2" stroke="#37d0c0" stroke-width="2"/>
+        <rect x="19" y="12" width="11" height="18" rx="2.4" fill="#0b0e14" stroke="#37d0c0" stroke-width="2"/>
+        <circle cx="24.5" cy="26.6" r="1.1" fill="#37d0c0"/>
+      </svg>
+      Device<span>Peek</span>
+    </div>
+
+    <div class="sep hide-sm"></div>
+
+    <form class="urlform" id="urlform">
+      <span class="pre">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 13a5 5 0 0 0 7 0l3-3a5 5 0 0 0-7-7l-1 1"/><path d="M14 11a5 5 0 0 0-7 0l-3 3a5 5 0 0 0 7 7l1-1"/></svg>
+      </span>
+      <input id="url" type="text" placeholder="Paste a URL — your site, a Vercel preview, or localhost:3000" spellcheck="false" autocomplete="off">
+      <button type="submit">Preview</button>
+    </form>
+
+    <div class="toggle" id="view">
+      <button data-view="both" class="on" title="Show both">▦ Both</button>
+      <button data-view="phone" title="Phone only">▢ Phone</button>
+      <button data-view="laptop" title="Laptop only">▭ Laptop</button>
+    </div>
+
+    <div class="ctl dev-only">
+      <label for="phoneDev">Phone</label>
+      <select class="dev" id="phoneDev"></select>
+    </div>
+    <div class="ctl dev-only">
+      <label for="laptopDev">Laptop</label>
+      <select class="dev" id="laptopDev"></select>
+    </div>
+
+    <button class="icon" id="rotate" title="Rotate phone">⟳</button>
+    <button class="icon" id="reload" title="Reload">↻</button>
+    <button class="icon" id="stageToggle" title="Toggle backdrop">◐</button>
+    <button class="icon" id="openTab" title="Open URL in a new tab">Open ↗</button>
+  </header>
+
+  <main class="stage" id="stage">
+    <section class="device" id="phoneDevice">
+      <div class="scaler" id="phoneScaler">
+        <div class="phone" id="phone">
+          <span class="pbtn v1"></span><span class="pbtn v2"></span><span class="pbtn pw"></span>
+          <div class="pscreen" id="pscreen">
+            <div class="island" id="island"></div>
+            <iframe id="phoneFrame" title="Phone preview" allow="clipboard-read; clipboard-write; geolocation"></iframe>
+          </div>
+        </div>
+      </div>
+      <div class="tag" id="phoneTag">iPhone</div>
+    </section>
+
+    <section class="device" id="laptopDevice">
+      <div class="scaler" id="laptopScaler">
+        <div class="laptop" id="laptop">
+          <div class="lid">
+            <div class="lscreen" id="lscreen">
+              <iframe id="laptopFrame" title="Laptop preview" allow="clipboard-read; clipboard-write; geolocation"></iframe>
+            </div>
+          </div>
+          <div class="base" id="lbase"></div>
+        </div>
+      </div>
+      <div class="tag" id="laptopTag">Laptop</div>
+    </section>
+  </main>
+
+  <div class="note" id="note">
+    <span>Blank frame? That site <b>blocks embedding</b>.</span>
+    <a href="#" id="noteOpen">Open it in a new tab ↗</a>
+  </div>
+
+<script>
+  const PHONES = {
+    "iphone15pro":   { name:"iPhone 15 Pro", w:393, h:852, island:true,  radius:52, screenRadius:40, bezel:13 },
+    "iphone15max":   { name:"iPhone 15 Pro Max", w:430, h:932, island:true, radius:56, screenRadius:44, bezel:14 },
+    "iphonese":      { name:"iPhone SE", w:375, h:667, island:false, radius:44, screenRadius:30, bezel:14 },
+    "pixel8":        { name:"Pixel 8", w:412, h:915, island:false, radius:44, screenRadius:34, bezel:12 },
+    "galaxys23":     { name:"Galaxy S23", w:360, h:780, island:false, radius:42, screenRadius:32, bezel:12 }
+  };
+  const LAPTOPS = {
+    "macbookair":    { name:"MacBook Air 13\"", w:1280, h:832 },
+    "laptop":        { name:"Laptop 1366", w:1366, h:768 },
+    "desktop":       { name:"Desktop 1440", w:1440, h:900 },
+    "small":         { name:"Small 1024", w:1024, h:640 }
+  };
+
+  const $ = id => document.getElementById(id);
+  const phoneSel=$("phoneDev"), laptopSel=$("laptopDev");
+  for (const [k,d] of Object.entries(PHONES)){ const o=document.createElement("option"); o.value=k; o.textContent=d.name; phoneSel.appendChild(o); }
+  for (const [k,d] of Object.entries(LAPTOPS)){ const o=document.createElement("option"); o.value=k; o.textContent=d.name; laptopSel.appendChild(o); }
+  phoneSel.value="iphone15pro"; laptopSel.value="macbookair";
+
+  let view="both", landscape=false;
+  const DEFAULT_URL="https://new-cleaning-apps.vercel.app";
+
+  function normalize(u){
+    u=(u||"").trim();
+    if(!u) return "";
+    if(/^localhost|^127\.0\.0\.1|^\d+\.\d+\.\d+\.\d+/.test(u)) return "http://"+u;
+    if(!/^https?:\/\//i.test(u)) return "https://"+u;
+    return u;
+  }
+  function currentUrl(){ return normalize($("url").value) || DEFAULT_URL; }
+
+  function loadUrl(u){
+    const url=normalize(u); if(!url) return;
+    $("url").value=url;
+    $("phoneFrame").src=url;
+    $("laptopFrame").src=url;
+    try{ localStorage.setItem("dp_url",url); }catch(e){}
+  }
+
+  function layoutPhone(){
+    const d=PHONES[phoneSel.value]; let w=d.w,h=d.h; if(landscape)[w,h]=[h,w];
+    const ph=$("phone"), sc=$("pscreen");
+    ph.style.borderRadius=d.radius+"px"; ph.style.padding=d.bezel+"px";
+    sc.style.width=w+"px"; sc.style.height=h+"px"; sc.style.borderRadius=d.screenRadius+"px";
+    $("island").className="island"+((!d.island||landscape)?" hidden":"");
+    $("phoneTag").textContent=d.name+" · "+w+"×"+h;
+    return {w:w+d.bezel*2, h:h+d.bezel*2};
+  }
+  function layoutLaptop(){
+    const d=LAPTOPS[laptopSel.value];
+    const ls=$("lscreen");
+    ls.style.width=d.w+"px"; ls.style.height=d.h+"px";
+    $("lbase").style.width=(d.w+64)+"px";
+    $("laptopTag").textContent=d.name+" · "+d.w+"×"+d.h;
+    return {w:d.w+22, h:d.h+22+15};
+  }
+
+  function fit(){
+    const stage=$("stage");
+    const showP = view==="both"||view==="phone";
+    const showL = view==="both"||view==="laptop";
+    $("phoneDevice").style.display = showP?"":"none";
+    $("laptopDevice").style.display = showL?"":"none";
+
+    const pDim=layoutPhone(), lDim=layoutLaptop();
+    const gap = (showP&&showL)?56:0;
+    const availH = stage.clientHeight - 80 - 34;      /* padding + tag row */
+    const availW = stage.clientWidth - 80;
+
+    // vertical scale per device
+    let pScale = showP ? Math.min(1.15, availH/pDim.h) : 0;
+    let lScale = showL ? Math.min(1, availH/lDim.h) : 0;
+
+    // ensure combined width fits
+    const combW = (showP?pDim.w*pScale:0) + (showL?lDim.w*lScale:0) + gap;
+    if(combW>availW){
+      const f=availW/combW;
+      pScale*=f; lScale*=f;
+    }
+    $("phoneScaler").style.transform="scale("+pScale.toFixed(3)+")";
+    $("laptopScaler").style.transform="scale("+lScale.toFixed(3)+")";
+    // reserve scaled size so flex centering works
+    $("phoneScaler").style.height=(pDim.h*pScale)+"px";
+    $("phoneScaler").style.width=(pDim.w*pScale)+"px";
+    $("laptopScaler").style.height=(lDim.h*lScale)+"px";
+    $("laptopScaler").style.width=(lDim.w*lScale)+"px";
+  }
+
+  // events
+  $("urlform").addEventListener("submit",e=>{ e.preventDefault(); loadUrl($("url").value); });
+  $("view").addEventListener("click",e=>{
+    const b=e.target.closest("button"); if(!b) return;
+    view=b.dataset.view;
+    document.querySelectorAll("#view button").forEach(x=>x.classList.toggle("on",x===b));
+    fit();
+  });
+  phoneSel.addEventListener("change",fit);
+  laptopSel.addEventListener("change",fit);
+  $("rotate").addEventListener("click",()=>{ landscape=!landscape; fit(); });
+  $("reload").addEventListener("click",()=>{ const u=currentUrl(); $("phoneFrame").src=u; $("laptopFrame").src=u; });
+  $("openTab").addEventListener("click",()=>window.open(currentUrl(),"_blank","noopener"));
+  $("noteOpen").addEventListener("click",e=>{ e.preventDefault(); window.open(currentUrl(),"_blank","noopener"); });
+  $("stageToggle").addEventListener("click",()=>{
+    const r=document.documentElement;
+    r.dataset.stage = r.dataset.stage==="light"?"dark":"light";
+    try{ localStorage.setItem("dp_stage",r.dataset.stage); }catch(e){}
+  });
+  window.addEventListener("resize",fit);
+
+  // init
+  document.documentElement.dataset.stage = (()=>{ try{return localStorage.getItem("dp_stage")||"dark";}catch(e){return "dark";} })();
+  const saved = (()=>{ try{return localStorage.getItem("dp_url");}catch(e){return null;} })();
+  loadUrl(saved || DEFAULT_URL);
+  fit();
+</script>
+</body>
+</html>
