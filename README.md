@@ -49,7 +49,7 @@ Live app: https://fredler21.github.io/devicepeek/
     npm install
     npm run dev
 
-The dev server runs at http://localhost:5173/devicepeek/
+The dev server runs at http://localhost:5173/
 
 Build and preview the production bundle:
 
@@ -78,8 +78,21 @@ Then in DevicePeek, type localhost:3000 and press Preview.
 
 ## Deployment
 
+Deploy on Vercel:
+
+1. Push this repo to GitHub.
+2. In Vercel, choose Add New Project and import the repository.
+3. Vercel detects Vite automatically. Build command is `npm run build` and the output
+   directory is `dist` (also set in `vercel.json`). Click Deploy.
+
+The Vite base path is `/` everywhere except GitHub Pages, so the Vercel build serves
+correctly from the domain root with no extra config.
+
+Deploy on GitHub Pages:
+
 Every push to main triggers the Deploy to GitHub Pages workflow, which runs `npm ci`
-and `npm run build`, then publishes the dist folder to Pages. There are no manual steps.
+and `npm run build` with the base path set to `/devicepeek/`, then publishes the dist
+folder to Pages. There are no manual steps.
 
 ## How it works
 
