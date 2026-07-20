@@ -3,7 +3,29 @@
   "private": true,
   "version": "1.0.0",
   "type": "module",
-  "description": "See any website or app as an iPhone and a laptop, side by side.",
+  "description": "See any website or app as an iPhone and a laptop, side by side, right in your browser.",
+  "author": "Fredler Gracia Pierre-Louis",
+  "license": "MIT",
+  "homepage": "https://fredler21.github.io/devicepeek/",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Fredler21/devicepeek.git"
+  },
+  "bugs": {
+    "url": "https://github.com/Fredler21/devicepeek/issues"
+  },
+  "keywords": [
+    "responsive",
+    "preview",
+    "device-frame",
+    "iframe",
+    "iphone",
+    "laptop",
+    "mobile-preview",
+    "developer-tools",
+    "typescript",
+    "vite"
+  ],
   "scripts": {
     "dev": "vite",
     "build": "tsc && vite build",
