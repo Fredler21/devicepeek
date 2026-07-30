@@ -1,4 +1,8 @@
 import "./style.css";
+// The plugin, the CLI, and this snippet all serve the same agent file.
+import agentSource from "../plugin/agent.js?raw";
+import { el } from "./dom";
+import { initProjects, redrawProjects, type Project } from "./projects";
 
 /** A previewable device: CSS point dimensions plus phone frame styling hints. */
 interface Device {
@@ -34,12 +38,6 @@ const LAPTOPS: Record<string, Device> = {
 
 const DEFAULT_URL = "https://new-cleaning-apps.vercel.app";
 
-function el<T extends HTMLElement>(id: string): T {
-  const node = document.getElementById(id);
-  if (!node) throw new Error(`DevicePeek: missing element #${id}`);
-  return node as T;
-}
-
 const phoneSel = el<HTMLSelectElement>("phoneDev");
 const laptopSel = el<HTMLSelectElement>("laptopDev");
 const urlInput = el<HTMLInputElement>("url");
@@ -62,6 +60,9 @@ laptopSel.value = "macbookair";
 
 let view: ViewMode = "both";
 let landscape = false;
+// Set once the developer names a URL themselves, which stops project discovery from
+// pulling the frames off whatever they were looking at.
+let userChoseUrl = false;
 
 function normalize(raw: string): string {
   const u = (raw ?? "").trim();
@@ -99,6 +100,7 @@ function loadUrl(raw: string): void {
   writeStore("dp_url", url);
   watchFrame("phone");
   watchFrame("laptop");
+  redrawProjects();
 }
 
 function layoutPhone(): Size {
@@ -174,16 +176,8 @@ interface Issue {
 }
 
 // Paste-into-your-site agent. Reports errors, broken assets, and overflow to DevicePeek.
-const AGENT_SNIPPET = `<script>
-(function(){var T="devicepeek-agent";function s(o){try{parent.postMessage(Object.assign({source:T,url:location.href},o),"*")}catch(e){}}
-s({type:"ready"});
-addEventListener("error",function(e){var t=e.target||{};if(t.tagName==="IMG"||t.tagName==="SCRIPT"||t.tagName==="LINK"){s({type:"resource",level:"error",message:(t.tagName==="IMG"?"Broken image: ":"Failed to load: ")+(t.src||t.href||"")});}else{s({type:"js",level:"error",message:e.message,at:(e.filename||"")+":"+(e.lineno||"")});}},true);
-addEventListener("unhandledrejection",function(e){var r=e.reason;s({type:"promise",level:"error",message:"Unhandled rejection: "+(r&&r.message?r.message:String(r))});});
-["error","warn"].forEach(function(k){var o=console[k];console[k]=function(){s({type:"console",level:k==="warn"?"warn":"error",message:[].map.call(arguments,String).join(" ")});o.apply(console,arguments);};});
-function of(){var e=document.documentElement;if(e.scrollWidth>e.clientWidth+2){s({type:"layout",level:"warn",message:"Horizontal overflow: content "+e.scrollWidth+"px in a "+e.clientWidth+"px viewport"});}}
-addEventListener("load",of);addEventListener("resize",function(){clearTimeout(window.__dpof);window.__dpof=setTimeout(of,300);});
-})();
-<\/script>`;
+// Projects using the Vite plugin get this injected for them, so this copy is for the rest.
+const AGENT_SNIPPET = `<script>\n${agentSource.trim()}\n<\/script>`;
 
 const loadTimers: Record<Frame, number> = { phone: 0, laptop: 0 };
 const issues: Issue[] = [];
@@ -291,6 +285,7 @@ el<HTMLButtonElement>("copySnippet").addEventListener("click", async () => {
 // ---- events ----
 el<HTMLFormElement>("urlform").addEventListener("submit", (e) => {
   e.preventDefault();
+  userChoseUrl = true;
   loadUrl(urlInput.value);
 });
 
@@ -327,5 +322,28 @@ el<HTMLTextAreaElement>("snippetBox").value = AGENT_SNIPPET;
 renderIssues();
 // A ?url= query param wins, so preview links are shareable (e.g. ?url=example.com).
 const paramUrl = new URLSearchParams(location.search).get("url");
+userChoseUrl = Boolean(paramUrl);
 loadUrl(paramUrl ?? readStore("dp_url") ?? DEFAULT_URL);
+
+// Projects that have DevicePeek added to them register themselves when their dev server
+// starts, so this list fills in with no URL typed anywhere. The first live one opens by
+// itself, once per session, which is the whole point: add DevicePeek to a project and
+// you can just look at it.
+let autoPicked = false;
+initProjects({
+  activeUrl: currentUrl,
+  onPick(url) {
+    userChoseUrl = true;
+    loadUrl(url);
+  },
+  onDiscover(found: Project[]) {
+    if (userChoseUrl || autoPicked) return;
+    const live = found.filter((p) => p.live);
+    if (!live.length) return;
+    autoPicked = true;
+    const showing = currentUrl().replace(/\/+$/, "");
+    if (!live.some((p) => p.url.replace(/\/+$/, "") === showing)) loadUrl(live[0].url);
+  },
+});
+
 fit();

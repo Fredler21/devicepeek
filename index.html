@@ -47,6 +47,7 @@
     <button class="icon" id="reload" title="Reload">↻</button>
     <button class="icon" id="stageToggle" title="Toggle backdrop">◐</button>
     <button class="icon" id="openTab" title="Open URL in a new tab">Open ↗</button>
+    <button class="icon" id="projectsBtn" title="Show your projects">⧉ Projects<span class="badge" id="projectsBadge">0</span></button>
     <button class="icon" id="issuesBtn" title="Show issues">⚠ Issues<span class="badge" id="issuesBadge">0</span></button>
   </header>
 
@@ -85,6 +86,34 @@
     </section>
   </main>
 
+  <aside class="ppanel" id="projectsPanel" hidden>
+    <div class="ppanel-head">
+      <div class="ppanel-title">Projects <span class="count" id="projectsCount">0</span></div>
+      <button class="mini" id="closeProjects">Close</button>
+    </div>
+    <div class="ppanel-body">
+      <ul class="plist" id="projectsList"></ul>
+
+      <div class="pempty" id="projectsEmpty">
+        <p class="ptitle">No projects yet</p>
+        <p>Add DevicePeek to a project once and it shows up here by itself, with no URL to type.</p>
+        <pre class="pcode">npm install -D devicepeek</pre>
+        <p>Then in that project's Vite config:</p>
+        <pre class="pcode">import devicepeek from "devicepeek/vite";
+
+export default {
+  plugins: [devicepeek()],
+};</pre>
+        <p>Start its dev server and it appears in this list. Not on Vite? Register it once:</p>
+        <pre class="pcode">npx devicepeek register --url http://localhost:3000</pre>
+      </div>
+
+      <div class="phint" id="projectsHint" hidden>
+        Run <code>npx devicepeek</code> on this machine to see your registered projects here.
+      </div>
+    </div>
+  </aside>
+
   <section class="ipanel" id="issuesPanel" hidden>
     <div class="ipanel-head">
       <div class="ipanel-title">Issues <span class="count" id="issuesCount">0</span></div>
@@ -99,9 +128,9 @@
     </div>
     <div class="ipanel-body">
       <div class="snippetbar">
-        <div class="snippetinfo">Deep checks (JavaScript errors, broken images, layout overflow) need your site to opt in. Paste this into your dev build once:</div>
+        <div class="snippetinfo">Deep checks (JavaScript errors, broken images, layout overflow) need your site to opt in. Projects using the <code>devicepeek/vite</code> plugin already have this injected. For anything else, paste it into your dev build once:</div>
         <div class="snippetrow">
-          <textarea id="snippetBox" readonly rows="3" spellcheck="false"></textarea>
+          <textarea id="snippetBox" readonly rows="8" spellcheck="false"></textarea>
           <button class="mini" id="copySnippet">Copy</button>
         </div>
       </div>

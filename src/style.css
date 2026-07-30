@@ -99,11 +99,52 @@ iframe{display:block;border:0;width:100%;height:100%;background:#fff}
 .statuschip.timeout{color:#ff6b6b;border-color:rgba(255,107,107,.45)}
 :root[data-stage="light"] .statuschip{background:#fff}
 
-/* issues button badge */
-#issuesBtn{gap:7px}
-#issuesBtn .badge{min-width:20px;height:20px;padding:0 6px;border-radius:20px;background:var(--line2);color:var(--muted);
+/* button badges */
+#issuesBtn,#projectsBtn{gap:7px}
+.badge{min-width:20px;height:20px;padding:0 6px;border-radius:20px;background:var(--line2);color:var(--muted);
   font-size:11px;font-weight:700;display:inline-flex;align-items:center;justify-content:center}
 #issuesBtn .badge.has{background:#ff6b6b;color:#160707}
+#projectsBtn .badge.has{background:var(--accent);color:#05201d}
+
+/* projects drawer */
+.ppanel{position:fixed;top:0;right:0;bottom:0;z-index:40;width:min(370px,92vw);
+  background:var(--bg2);border-left:1px solid var(--line2);display:flex;flex-direction:column;
+  box-shadow:-18px 0 40px -20px rgba(0,0,0,.7)}
+.ppanel[hidden]{display:none}
+.ppanel-head{display:flex;align-items:center;gap:12px;padding:12px 14px;border-bottom:1px solid var(--line)}
+.ppanel-title{font-weight:700;font-size:15px;display:flex;align-items:center;gap:8px}
+.ppanel-title .count{font-size:12px;font-weight:700;color:var(--muted);background:var(--panel);
+  border:1px solid var(--line2);border-radius:20px;padding:2px 9px}
+.ppanel-head .mini{margin-left:auto}
+.ppanel-body{flex:1;overflow:auto;padding:12px 14px;display:flex;flex-direction:column;gap:12px}
+
+.plist{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:6px}
+.prow{display:flex;align-items:stretch;gap:6px;background:var(--panel);border:1px solid var(--line);
+  border-radius:10px;overflow:hidden;transition:.15s}
+.prow:hover{border-color:var(--line2)}
+.prow.on{border-color:var(--accent);background:var(--accent-t)}
+.ppick{flex:1;min-width:0;display:grid;grid-template-columns:auto 1fr;grid-template-rows:auto auto;
+  gap:2px 9px;align-items:center;text-align:left;background:transparent;border:0;color:var(--txt);
+  padding:10px 12px;cursor:pointer;font-size:14px}
+.pdot{grid-row:1/3;width:8px;height:8px;border-radius:50%;background:var(--line2);flex:none}
+.pdot.live{background:var(--accent);box-shadow:0 0 0 3px rgba(55,208,192,.18)}
+.pname{font-weight:600;letter-spacing:-.01em;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.purl{font-size:11.5px;color:var(--muted);font-family:ui-monospace,Menlo,Consolas,monospace;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.pforget{flex:none;width:34px;background:transparent;border:0;border-left:1px solid var(--line);
+  color:var(--muted2);font-size:17px;line-height:1;cursor:pointer}
+.pforget:hover{color:#ff6b6b;background:rgba(255,107,107,.08)}
+
+.pempty{color:var(--muted);font-size:13px;line-height:1.55;display:flex;flex-direction:column;gap:9px}
+.pempty[hidden]{display:none}
+.pempty .ptitle{color:var(--txt);font-weight:700;font-size:14px}
+.pcode{background:var(--bg);border:1px solid var(--line2);border-radius:9px;color:#b7c2d0;
+  font-family:ui-monospace,Menlo,Consolas,monospace;font-size:11.5px;line-height:1.55;
+  padding:10px;margin:0;overflow-x:auto;white-space:pre}
+.phint{color:var(--muted2);font-size:12.5px;line-height:1.5;border-top:1px solid var(--line);padding-top:11px}
+.phint[hidden]{display:none}
+.phint code,.snippetinfo code{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:11.5px;
+  color:var(--accent);background:var(--panel);border:1px solid var(--line2);border-radius:5px;padding:1px 5px}
 
 /* issues panel */
 .ipanel{position:fixed;left:0;right:0;bottom:0;z-index:30;height:min(46vh,440px);
