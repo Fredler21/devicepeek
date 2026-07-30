@@ -1,9 +1,8 @@
 {
   "name": "devicepeek",
-  "private": true,
-  "version": "1.0.0",
+  "version": "1.1.0",
   "type": "module",
-  "description": "See any website or app as an iPhone and a laptop, side by side, right in your browser.",
+  "description": "See any website or app as an iPhone and a laptop, side by side, right in your browser. Add it to a project and that project shows up on its own.",
   "author": "Fredler Gracia Pierre-Louis",
   "license": "MIT",
   "homepage": "https://fredler21.github.io/devicepeek/",
@@ -23,13 +22,43 @@
     "laptop",
     "mobile-preview",
     "developer-tools",
+    "vite-plugin",
     "typescript",
     "vite"
+  ],
+  "engines": {
+    "node": ">=18"
+  },
+  "bin": {
+    "devicepeek": "bin/devicepeek.mjs"
+  },
+  "main": "./plugin/index.mjs",
+  "types": "./plugin/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./plugin/index.d.ts",
+      "default": "./plugin/index.mjs"
+    },
+    "./vite": {
+      "types": "./plugin/vite.d.ts",
+      "default": "./plugin/vite.mjs"
+    },
+    "./agent": "./plugin/agent.js",
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "bin",
+    "plugin",
+    "dist",
+    "README.md",
+    "LICENSE"
   ],
   "scripts": {
     "dev": "vite",
     "build": "tsc && vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "start": "node bin/devicepeek.mjs",
+    "prepare": "npm run build"
   },
   "devDependencies": {
     "typescript": "^7.0.2",
