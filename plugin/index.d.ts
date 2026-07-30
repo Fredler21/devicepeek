@@ -1,5 +1,5 @@
 export interface Project {
-  /** Stable id derived from the project folder. */
+  /** Stable id derived from the project folder and its name. */
   id: string;
   name: string;
   url: string;
@@ -27,7 +27,7 @@ export interface RegisterInput {
 
 export declare function home(): string;
 export declare function registryFile(): string;
-export declare function projectId(root: string): string;
+export declare function projectId(root: string, name?: string): string;
 export declare function readRegistry(): Registry;
 export declare function listProjects(): Project[];
 export declare function update(mutator: (registry: Registry) => Registry | void): Registry;

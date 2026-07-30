@@ -90,34 +90,56 @@ after a clone.
 Adding DevicePeek to a project is what makes that project viewable in DevicePeek without
 anyone typing a URL or registering a domain.
 
-Install it in the project you are building:
+There are four ways to register a project. They all write to the same list, so pick the
+first one that fits your stack. Every route needs the package installed and the dashboard
+running, so start with the two steps below.
+
+### Step 1: install it
+
+The package is not on npm yet, so install it straight from GitHub:
+
+    npm install -D github:Fredler21/devicepeek
+
+Once it is published that becomes:
 
     npm install -D devicepeek
 
-Add the plugin to that project's Vite config:
+To work against a local clone instead, link it once and it is available everywhere:
 
+    cd devicepeek
+    npm link                 # makes devicepeek a global command
+    cd ../your-project
+    npm link devicepeek      # lets that project import devicepeek/vite
+
+### Step 2: open the dashboard
+
+    npx devicepeek
+
+It serves at http://localhost:7331 and you can leave it sitting in a tab. Click Projects
+in the top bar to see the list. Use `--port` to move it, and `--no-open` to stop it
+launching a browser.
+
+### Way 1: the Vite plugin
+
+The best option when the project is on Vite. It needs no upkeep and it knows the real
+port.
+
+    // vite.config.ts
     import devicepeek from "devicepeek/vite";
 
     export default {
       plugins: [devicepeek()],
     };
 
-Open the DevicePeek dashboard, which you can leave sitting in a tab:
+Start the dev server the way you always do. The project appears in the Projects list the
+moment the server is up, labeled with its package name and the port it actually bound to,
+and the first live project opens in the frames by itself. Add the plugin to a second
+project and it joins the list too, so you can flip between them from the sidebar instead
+of the URL bar.
 
-    npx devicepeek
-
-Now start the project's dev server the way you always do. It appears in the Projects
-list the moment the server is up, labeled with its package name and the port it actually
-landed on, and the first live project opens in the frames by itself. Add the plugin to a
-second project and it joins the list too, so you can flip between them from the sidebar
-instead of the URL bar.
-
-The plugin is dev only. It does nothing in a production build, and it also injects the
-diagnostics agent for you, so the Issues panel does the deep checks with no extra setup.
-
-Stopping a dev server removes its project from the list. If it is killed with no chance
-to clean up, the row stays and turns offline, because the dashboard checks the port
-instead of trusting the file.
+The plugin is dev only. It does nothing in a production build, and it injects the
+diagnostics agent for you, so the Issues panel does its deep checks with no extra setup.
+Stopping the dev server takes the project back out of the list.
 
 Options, if you need them:
 
@@ -127,16 +149,66 @@ Options, if you need them:
       agent: false,                    // skip the diagnostics agent
     })
 
-### Projects that are not on Vite
+### Way 2: an npm script, for any stack
 
-Any stack works. It just registers once by hand rather than automatically:
+Works for Next.js, Nuxt, Astro, Remix, SvelteKit, Rails, Django, or anything else with a
+dev command. npm runs a `pre` script before the script whose name it matches, so the
+project registers itself every time you start it.
 
-    npx devicepeek register --url http://localhost:3000 --name my-app
-    npx devicepeek list
-    npx devicepeek forget my-app
+    "scripts": {
+      "predev": "devicepeek register --url http://localhost:3000 --name my-app",
+      "dev": "next dev"
+    }
 
-To get the deep checks there too, pull the agent from the running dashboard in your dev
-HTML:
+Set the port to whatever your dev server uses. If your dev command is called `start`
+rather than `dev`, name the hook `prestart` instead.
+
+One caveat: this registers the port you wrote down, not the port the server ends up on.
+If 3000 is busy and the server moves to 3001, the row points at the wrong place. Way 1
+does not have that problem, because the plugin reads the port after the server binds.
+
+### Way 3: the CLI, once by hand
+
+Good for a project you only reach for occasionally, or a deployed preview you want to
+keep in the list.
+
+    devicepeek register --url http://localhost:3000 --name my-app
+    devicepeek register --url https://my-app.vercel.app --name my-app-preview
+    devicepeek list
+    devicepeek forget my-app
+
+`--root` sets the folder the entry belongs to, which defaults to the current directory.
+An entry stays until you forget it, and shows offline whenever nothing answers at that
+address.
+
+### Way 4: the Node API, from a config file
+
+For stacks whose config is JavaScript but that have no Vite plugin hook. Next.js is the
+usual case.
+
+    // next.config.ts
+    import { register } from "devicepeek";
+
+    if (process.env.NODE_ENV === "development") {
+      register({ name: "my-app", url: "http://localhost:3000" });
+    }
+
+    export default {
+      // your config
+    };
+
+Same port caveat as way 2. `register` also takes `root`, and there is a matching
+`forget`, `listProjects`, and `readRegistry` from the same import.
+
+### Or skip registering entirely
+
+Registering is a convenience, not a requirement. Typing a URL into the address bar still
+works for anything, and adding `?url=example.com` still makes a shareable link.
+
+### Deep checks without the Vite plugin
+
+Way 1 injects the diagnostics agent for you. On the other three routes, pull it from the
+running dashboard in your dev HTML to get the same reporting:
 
     <script src="http://localhost:7331/agent.js"></script>
 
@@ -144,9 +216,18 @@ HTML:
 
 A project writes its name, its dev server URL, and its folder into a small registry file
 at `~/.devicepeek/projects.json`. The dashboard reads that file and lists what it finds,
-probing each port to decide what is live. Nothing leaves your machine, there is no
+probing each address to decide what is live. Nothing leaves your machine, there is no
 account, and there is no server in the middle. Point `DEVICEPEEK_HOME` somewhere else to
 move the registry.
+
+A row is identified by its folder and its name together. Registering the same folder
+under the same name updates that row in place, which is why restarting a dev server never
+piles up duplicates. Registering the same folder under a different name adds a second row,
+which is how one project can keep a localhost address and a deployed preview side by side.
+
+Registering is safe to run at the same time from several projects. Writes take a lock and
+replace the file atomically, so two dev servers starting together cannot lose each other's
+entry.
 
 The dashboard's local API binds to the loopback address only, rejects requests aimed at
 any other hostname, and allows only localhost origins plus the hosted DevicePeek build.
