@@ -2,7 +2,7 @@ import "./style.css";
 // The plugin, the CLI, and this snippet all serve the same agent file.
 import agentSource from "../plugin/agent.js?raw";
 import { el } from "./dom";
-import { initProjects, redrawProjects, type Project } from "./projects";
+import { cliBase, initProjects, redrawProjects, refreshProjects, type Project } from "./projects";
 
 /** A previewable device: CSS point dimensions plus phone frame styling hints. */
 interface Device {
@@ -91,12 +91,39 @@ function writeStore(key: string, value: string): void {
   }
 }
 
+// ---- proxy mode ----
+// Many sites send X-Frame-Options or frame-ancestors and refuse to load in a frame. The
+// local CLI can fetch them without those headers, so proxy mode routes the frames
+// through it. It is the developer's wish that is stored; it takes effect whenever the
+// CLI is answering.
+let proxyWanted = readStore("dp_proxy") === "1";
+let framesProxied = false;
+
+function proxyActive(): boolean {
+  return proxyWanted && cliBase() !== null;
+}
+
+function frameSrc(url: string): string {
+  return proxyActive() ? `${cliBase()}/proxy?url=${encodeURIComponent(url)}` : url;
+}
+
+function setFrames(url: string): void {
+  framesProxied = proxyActive();
+  phoneFrame.src = frameSrc(url);
+  laptopFrame.src = frameSrc(url);
+}
+
+function renderProxy(): void {
+  const btn = el<HTMLButtonElement>("proxyBtn");
+  btn.classList.toggle("on", proxyActive());
+  btn.textContent = proxyWanted && !proxyActive() ? "⇄ Proxy (waiting)" : "⇄ Proxy";
+}
+
 function loadUrl(raw: string): void {
   const url = normalize(raw);
   if (!url) return;
   urlInput.value = url;
-  phoneFrame.src = url;
-  laptopFrame.src = url;
+  setFrames(url);
   writeStore("dp_url", url);
   watchFrame("phone");
   watchFrame("laptop");
@@ -303,10 +330,17 @@ el<HTMLButtonElement>("rotate").addEventListener("click", () => {
   landscape = !landscape;
   fit();
 });
-el<HTMLButtonElement>("reload").addEventListener("click", () => {
-  const u = currentUrl();
-  phoneFrame.src = u;
-  laptopFrame.src = u;
+el<HTMLButtonElement>("reload").addEventListener("click", () => setFrames(currentUrl()));
+el<HTMLButtonElement>("proxyBtn").addEventListener("click", async () => {
+  proxyWanted = !proxyWanted;
+  writeStore("dp_proxy", proxyWanted ? "1" : "0");
+  if (proxyWanted && cliBase() === null) await refreshProjects();
+  el<HTMLElement>("proxyNote").hidden = !proxyWanted || cliBase() !== null;
+  renderProxy();
+  loadUrl(currentUrl());
+});
+el<HTMLButtonElement>("closeProxyNote").addEventListener("click", () => {
+  el<HTMLElement>("proxyNote").hidden = true;
 });
 el<HTMLButtonElement>("openTab").addEventListener("click", () => window.open(currentUrl(), "_blank", "noopener"));
 el<HTMLButtonElement>("stageToggle").addEventListener("click", () => {
@@ -337,6 +371,12 @@ initProjects({
     loadUrl(url);
   },
   onDiscover(found: Project[]) {
+    // The CLI just answered. If proxy mode was waiting on it, switch the frames over now.
+    renderProxy();
+    if (proxyActive() !== framesProxied) {
+      el<HTMLElement>("proxyNote").hidden = true;
+      loadUrl(currentUrl());
+    }
     if (userChoseUrl || autoPicked) return;
     const live = found.filter((p) => p.live);
     if (!live.length) return;
