@@ -145,6 +145,19 @@ function render(): void {
   el<HTMLElement>("projectsHint").hidden = reachable;
 }
 
+/**
+ * Where the local CLI answered, or null when it is not running. Proxy mode needs it,
+ * since only the CLI can strip the headers that stop a site from being framed.
+ */
+export function cliBase(): string | null {
+  return reachable ? apiBase : null;
+}
+
+/** Poll now instead of waiting for the next tick, e.g. right after proxy mode is turned on. */
+export function refreshProjects(): Promise<void> {
+  return poll();
+}
+
 /** Re-highlight the active row after the app loads a different URL. */
 export function redrawProjects(): void {
   if (config) render();

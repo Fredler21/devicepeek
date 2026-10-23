@@ -184,10 +184,138 @@ function serveStatic(res, pathname) {
   return serveFile(res, target);
 }
 
+// ---- proxy ----
+
+/**
+ * Headers that stop a page from being framed, or that would be wrong once the body has
+ * been read, decoded, and rewritten here. Cookies are dropped too, since they would be
+ * set for the loopback origin instead of the real site.
+ */
+const STRIP_HEADERS = new Set([
+  "x-frame-options",
+  "content-security-policy",
+  "content-security-policy-report-only",
+  "cross-origin-opener-policy",
+  "cross-origin-embedder-policy",
+  "cross-origin-resource-policy",
+  "strict-transport-security",
+  "content-encoding",
+  "content-length",
+  "transfer-encoding",
+  "connection",
+  "keep-alive",
+  "set-cookie",
+]);
+
+const PROXY_TIMEOUT_MS = 15000;
+
+function escapeAttr(value) {
+  return value.replace(/&/g, "&amp;").replace(/"/g, "&quot;").replace(/</g, "&lt;");
+}
+
+/**
+ * Runs inside the proxied page. Link clicks would otherwise navigate the frame to the
+ * real site, which blocks framing again, so same-frame links are sent back through here.
+ * It listens on window in the capture phase so it runs before a framework router does.
+ */
+function navShim(proxyPath) {
+  return `(function(){var P=${JSON.stringify(proxyPath)};
+function go(u){location.href=P+encodeURIComponent(u)}
+window.addEventListener("click",function(e){if(e.defaultPrevented||e.button!==0||e.metaKey||e.ctrlKey||e.shiftKey||e.altKey)return;
+var a=e.target&&e.target.closest&&e.target.closest("a[href]");if(!a)return;var t=a.getAttribute("target");if(t&&t!=="_self")return;
+var u;try{u=new URL(a.getAttribute("href"),document.baseURI)}catch(_){return}
+if(!/^https?:$/.test(u.protocol))return;if(u.hash&&u.href.split("#")[0]===document.baseURI.split("#")[0])return;
+e.preventDefault();e.stopImmediatePropagation();go(u.href)},true);
+window.addEventListener("submit",function(e){var f=e.target;if(!f||(f.method||"get").toLowerCase()!=="get")return;
+var u;try{u=new URL(f.getAttribute("action")||"",document.baseURI)}catch(_){return}
+u.search=new URLSearchParams(new FormData(f)).toString();e.preventDefault();e.stopImmediatePropagation();go(u.href)},true);})();`;
+}
+
+/**
+ * Put a <base> first in <head> so the page's relative assets still load from the real
+ * site, then the nav shim and the issues agent.
+ */
+function rewriteHtml(html, finalUrl, proxyPath) {
+  const agent = readFileSync(AGENT_FILE, "utf8");
+  const inject =
+    `<base href="${escapeAttr(finalUrl)}">` +
+    `<script>${navShim(proxyPath)}</script>` +
+    `<script>${agent.replace(/<\/script/gi, "<\\/script")}</script>`;
+  const head = html.match(/<head(\s[^>]*)?>/i);
+  if (head) return html.slice(0, head.index + head[0].length) + inject + html.slice(head.index + head[0].length);
+  const htmlTag = html.match(/<html(\s[^>]*)?>/i);
+  if (htmlTag) {
+    const at = htmlTag.index + htmlTag[0].length;
+    return html.slice(0, at) + `<head>${inject}</head>` + html.slice(at);
+  }
+  return inject + html;
+}
+
+/**
+ * Fetch a page for a frame, minus the headers that forbid framing. This is only ever
+ * reachable on loopback, so it cannot be used as an open proxy from the internet.
+ */
+async function proxy(req, res, searchParams) {
+  let target;
+  try {
+    target = new URL(searchParams.get("url") ?? "");
+  } catch {
+    return send(res, 400, "text/plain; charset=utf-8", "Proxy needs ?url= with a full http or https address");
+  }
+  if (target.protocol !== "http:" && target.protocol !== "https:") {
+    return send(res, 400, "text/plain; charset=utf-8", "Only http and https addresses can be proxied");
+  }
+
+  let upstream;
+  try {
+    upstream = await fetch(target, {
+      redirect: "follow",
+      signal: AbortSignal.timeout(PROXY_TIMEOUT_MS),
+      headers: {
+        "user-agent": String(req.headers["user-agent"] ?? "Mozilla/5.0 DevicePeek"),
+        accept: String(req.headers.accept ?? "text/html,*/*"),
+        "accept-language": String(req.headers["accept-language"] ?? "en-US,en;q=0.9"),
+      },
+    });
+  } catch (err) {
+    const reason = err?.name === "TimeoutError" ? "timed out" : (err?.cause?.code ?? err?.message ?? "failed");
+    return send(res, 502, "text/html; charset=utf-8", proxyError(target.href, reason));
+  }
+
+  const headers = {};
+  upstream.headers.forEach((value, key) => {
+    if (!STRIP_HEADERS.has(key)) headers[key] = value;
+  });
+  headers["cache-control"] = "no-store";
+
+  const type = upstream.headers.get("content-type") ?? "";
+  if (/text\/html|application\/xhtml/i.test(type)) {
+    const proxyPath = `http://${req.headers.host}/proxy?url=`;
+    const body = rewriteHtml(await upstream.text(), upstream.url || target.href, proxyPath);
+    res.writeHead(upstream.status, headers);
+    res.end(body);
+    return;
+  }
+  res.writeHead(upstream.status, headers);
+  res.end(Buffer.from(await upstream.arrayBuffer()));
+}
+
+function proxyError(url, reason) {
+  return `<!doctype html><meta charset="utf-8"><body style="font:15px system-ui;padding:24px;color:#333">
+<h2 style="margin:0 0 8px">DevicePeek could not reach this site</h2>
+<p>${escapeAttr(url)}</p><p>Reason: ${escapeAttr(String(reason))}</p></body>`;
+}
+
 async function handle(req, res, origins) {
   const origin = req.headers.origin;
   const allow = allowedOrigin(origin, origins);
-  const pathname = new URL(req.url ?? "/", "http://localhost").pathname;
+  const { pathname, searchParams } = new URL(req.url ?? "/", "http://localhost");
+
+  if (pathname === "/proxy") {
+    if (!hostOk(req)) return send(res, 403, "text/plain; charset=utf-8", "Forbidden host");
+    if (req.method !== "GET") return send(res, 405, "text/plain; charset=utf-8", "Method not allowed");
+    return proxy(req, res, searchParams);
+  }
   const isApi = pathname === "/api/projects" || pathname.startsWith("/api/projects/");
 
   res.setHeader("Vary", "Origin");
@@ -338,7 +466,8 @@ function forgetProject(rest) {
 function help() {
   console.log(`DevicePeek ${version()}
 
-  npx devicepeek                    open the dashboard with every registered project
+  npx devicepeek                    open the dashboard with every registered project,
+                                    plus the proxy that loads sites which block framing
   npx devicepeek list               print the registered projects and whether each is live
   npx devicepeek register --url U   add a project by hand, for stacks that are not Vite
   npx devicepeek forget NAME        drop a project from the list
