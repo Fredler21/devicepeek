@@ -45,6 +45,13 @@ select.dev,button.icon{background:var(--panel);border:1px solid var(--line2);bor
 select.dev{padding-right:24px}
 button.icon:hover,select.dev:hover{border-color:var(--accent)}
 button.icon{min-width:40px;display:inline-flex;align-items:center;justify-content:center;gap:6px}
+button.icon.on{border-color:var(--accent);color:var(--accent)}
+.proxynote{position:fixed;left:50%;top:72px;transform:translateX(-50%);z-index:30;max-width:min(560px,calc(100vw - 32px));
+  background:var(--panel);border:1px solid var(--accent);border-radius:12px;padding:12px 14px;
+  color:var(--txt);font-size:13px;line-height:1.55;box-shadow:0 10px 30px rgba(0,0,0,.35)}
+.proxynote[hidden]{display:none}
+.proxynote code{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:12px;color:var(--accent)}
+.proxynote .mini{margin-left:6px}
 .spacer{flex:1}
 
 /* ---- stage ---- */
